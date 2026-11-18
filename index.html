@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Cloud Container Allocation</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #eef2ff;
+    color: #1e293b;
+}
+
+header {
+    background: #172554;
+    color: white;
+    text-align: center;
+    padding: 25px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 25px auto;
+    padding: 15px;
+}
+
+.card {
+    background: white;
+    padding: 22px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 3px 12px #00000015;
+    overflow-x: auto;
+}
+
+h2 {
+    text-align: center;
+    color: #1e3a8a;
+}
+
+.available {
+    background: #dbeafe;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    text-align: center;
+    min-width: 400px;
+}
+
+th {
+    background: #1e3a8a;
+    color: white;
+}
+
+th, td {
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+}
+
+tr:nth-child(even) {
+    background: #f1f5f9;
+}
+
+button {
+    padding: 13px 22px;
+    margin: 8px;
+    border: none;
+    border-radius: 7px;
+    background: #2563eb;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1e40af;
+}
+
+.reset {
+    background: #64748b;
+}
+
+.result {
+    display: none;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 10px;
+    text-align: center;
+    line-height: 1.8;
+}
+
+.safe {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.unsafe {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.sequence {
+    font-size: 20px;
+    font-weight: bold;
+    color: #15803d;
+}
+
+footer {
+    background: #172554;
+    color: white;
+    text-align: center;
+    padding: 15px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>Cloud Container Allocation</h1>
+    <p>Banker's Safety Algorithm</p>
+</header>
+
+<div class="container">
+
+    <div class="card">
+        <h2>Cloud Resource Information</h2>
+
+        <p>
+            This system checks whether all containers can
+            complete execution with the available resources.
+        </p>
+
+        <div class="available">
+            Available Resources:
+            <br>
+            CPU = 3 | Memory = 3 | Storage = 2
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Allocation Matrix</h2>
+
+        <table>
+            <tr>
+                <th>Container</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Storage</th>
+            </tr>
+
+            <tbody id="allocationTable"></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Maximum Requirement Matrix</h2>
+
+        <table>
+            <tr>
+                <th>Container</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Storage</th>
+            </tr>
+
+            <tbody id="maxTable"></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>Need Matrix</h2>
+
+        <p>Need = Maximum Requirement - Allocation</p>
+
+        <table>
+            <tr>
+                <th>Container</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Storage</th>
+            </tr>
+
+            <tbody id="needTable"></tbody>
+        </table>
+    </div>
+
+    <div class="card" style="text-align:center">
+
+        <h2>Safety Algorithm</h2>
+
+        <button onclick="checkSafety()">
+            Check Safe Sequence
+        </button>
+
+        <button class="reset" onclick="resetResult()">
+            Reset
+        </button>
+
+        <div id="result" class="result"></div>
+
+    </div>
+
+</div>
+
+<footer>
+    <p>Operating Systems | Banker’s Safety Algorithm</p>
+</footer>
+
+<script>
+
+// Allocation Matrix
+const allocation = [
+    [0, 1, 0],
+    [2, 0, 0],
+    [3, 0, 2],
+    [2, 1, 1],
+    [0, 0, 2]
+];
+
+// Maximum Requirement Matrix
+const maximum = [
+    [7, 5, 3],
+    [3, 2, 2],
+    [9, 0, 2],
+    [2, 2, 2],
+    [4, 3, 3]
+];
+
+// Available Resources
+const available = [3, 3, 2];
+
+const n = allocation.length;
+const m = available.length;
+
+// Calculate Need Matrix
+const need = allocation.map((row, i) =>
+    row.map((value, j) => maximum[i][j] - value)
+);
+
+// Display table
+function displayTable(id, matrix) {
+
+    const table = document.getElementById(id);
+
+    matrix.forEach((row, i) => {
+
+        let tr = document.createElement("tr");
+
+        tr.innerHTML =
+            `<td>C${i + 1}</td>` +
+            row.map(value => `<td>${value}</td>`).join("");
+
+        table.appendChild(tr);
+    });
+}
+
+displayTable("allocationTable", allocation);
+displayTable("maxTable", maximum);
+displayTable("needTable", need);
+
+
+// Banker's Safety Algorithm
+function checkSafety() {
+
+    let work = [...available];
+
+    let finish = Array(n).fill(false);
+
+    let safeSequence = [];
+
+    let progress = true;
+
+    while (safeSequence.length < n && progress) {
+
+        progress = false;
+
+        for (let i = 0; i < n; i++) {
+
+            if (!finish[i]) {
+
+                let canExecute = true;
+
+                for (let j = 0; j < m; j++) {
+
+                    if (need[i][j] > work[j]) {
+                        canExecute = false;
+                        break;
+                    }
+                }
+
+                if (canExecute) {
+
+                    for (let j = 0; j < m; j++) {
+                        work[j] += allocation[i][j];
+                    }
+
+                    finish[i] = true;
+
+                    safeSequence.push("C" + (i + 1));
+
+                    progress = true;
+                }
+            }
+        }
+    }
+
+    let result = document.getElementById("result");
+
+    result.style.display = "block";
+
+    if (safeSequence.length === n) {
+
+        result.className = "result safe";
+
+        result.innerHTML = `
+            <h2 style="color:green">
+                SAFE STATE DETECTED!
+            </h2>
+
+            <p>All containers can complete execution.</p>
+
+            <h3>Safe Sequence</h3>
+
+            <div class="sequence">
+                ${safeSequence.join(" → ")}
+            </div>
+
+            <p>Status: SAFE</p>
+        `;
+
+    } else {
+
+        let unfinished = finish
+            .map((done, i) => done ? null : "C" + (i + 1))
+            .filter(Boolean);
+
+        result.className = "result unsafe";
+
+        result.innerHTML = `
+            <h2>UNSAFE STATE DETECTED!</h2>
+
+            <p>All containers cannot complete execution
+            with the current available resources.</p>
+
+            <h3>Unfinished Containers</h3>
+
+            <p>${unfinished.join(", ")}</p>
+
+            <p>Status: UNSAFE</p>
+        `;
+    }
+}
+
+
+// Reset
+function resetResult() {
+
+    const result = document.getElementById("result");
+
+    result.style.display = "none";
+
+    result.innerHTML = "";
+}
+
+</script>
+
+</body>
